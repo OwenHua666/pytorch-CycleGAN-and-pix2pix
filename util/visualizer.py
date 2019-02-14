@@ -3,7 +3,7 @@ import os
 import sys
 import ntpath
 import time
-from . import util, html
+from . import util
 from subprocess import Popen, PIPE
 from scipy.misc import imresize
 
@@ -66,11 +66,14 @@ class Visualizer():
         Step 4: create a logging file to store training losses
         """
         self.opt = opt  # cache the option
-        self.display_id = opt.display_id
-        self.use_html = opt.isTrain and not opt.no_html
+        #self.display_id = opt.display_id
+        self.display_id = 0
+        #self.use_html = opt.isTrain and not opt.no_html
+        self.use_html = False
         self.win_size = opt.display_winsize
         self.name = opt.name
-        self.port = opt.display_port
+        #self.port = opt.display_port
+        self.port = 0
         self.saved = False
         if self.display_id > 0:  # connect to a visdom server given <display_port> and <display_server>
             import visdom
