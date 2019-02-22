@@ -19,10 +19,13 @@ See training and test tips at: https://github.com/junyanz/pytorch-CycleGAN-and-p
 See frequently asked questions at: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/docs/qa.md
 """
 import time
+import os
 from options.train_options import TrainOptions
 from data import create_dataset
 from models import create_model
 from util.visualizer import Visualizer
+from util import util
+from PIL import Image
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()   # get training options
@@ -34,12 +37,18 @@ if __name__ == '__main__':
     model.setup(opt)               # regular setup: load and print networks; create schedulers
     visualizer = Visualizer(opt)   # create a visualizer that display/save images and plots
     total_iters = 0                # the total number of training iterations
+    epoch_img_save_dir = os.path.join(opt.checkpoints_dir, opt.name, 'train-visuals')
+    img_num = 1
+    if not os.path.isdir(epoch_img_save_dir):
+        os.makedirs(epoch_img_save_dir)
 
     for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):    # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
         epoch_start_time = time.time()  # timer for entire epoch
         iter_data_time = time.time()    # timer for data loading per iteration
         epoch_iter = 0                  # the number of training iterations in current epoch, reset to 0 every epoch
-
+        #img_dir = os.path.join(epoch_img_save_dir, "epoch_%.3d" % (epoch))
+        #if not os.path.isdir(img_dir):
+        #    os.makedirs(img_dir)
         for i, data in enumerate(dataset):  # inner loop within one epoch
             iter_start_time = time.time()  # timer for computation per iteration
             if total_iters % opt.print_freq == 0:
@@ -49,11 +58,31 @@ if __name__ == '__main__':
             epoch_iter += opt.batch_size
             model.set_input(data)         # unpack data from dataset and apply preprocessing
             model.optimize_parameters()   # calculate loss functions, get gradients, update network weights
+            
+            # Save images during training
+            if total_iters % (100 * opt.batch_size) == 0:  # save image every 100 batch_size iterations
+                model.compute_visuals()
+                visuals = model.get_current_visuals()
+                images = []
+                for label, image in visuals.items():
+                    image_numpy = util.tensor2im(image)
+                    image_pil = Image.fromarray(image_numpy)
+                    images.append(image_pil)
+                widths, heights = zip(*(ig.size for ig in images))
+                total_width = sum(widths)
+                max_height = max(heights)
+                new_im = Image.new('RGB', (total_width, max_height))
 
-            #if total_iters % opt.display_freq == 0:   # display images on visdom and save images to a HTML file
-            #    save_result = total_iters % opt.update_html_freq == 0
-            #    model.compute_visuals()
-            #    visualizer.display_current_results(model.get_current_visuals(), epoch, save_result)
+                x_offset = 0
+                for im in images:
+                    new_im.paste(im, (x_offset,0))
+                    x_offset += im.size[0]
+
+                new_im.save(os.path.join(epoch_img_save_dir, 'e_%.3d_imgnum_%.8d.png' % (epoch, img_num)))
+                # Save to artifacts
+                if os.path.isdir('/artifacts'):
+                    new_im.save(os.path.join('/artifacts', 'e_%.3d_imgnum_%.8d.png' % (epoch, img_num)))
+                img_num += 1
 
             if total_iters % opt.print_freq == 0:    # print training losses and save logging information to the disk
                 losses = model.get_current_losses()

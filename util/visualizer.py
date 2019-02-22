@@ -48,7 +48,6 @@ def save_images(webpage, visuals, image_path, aspect_ratio=1.0, width=256):
         links.append(image_name)
     webpage.add_images(ims, txts, links, width=width)
 
-
 class Visualizer():
     """This class includes several functions that can display/save images and print/save logging information.
 
@@ -92,6 +91,11 @@ class Visualizer():
         with open(self.log_name, "a") as log_file:
             now = time.strftime("%c")
             log_file.write('================ Training Loss (%s) ================\n' % now)
+        # Initiate loss chart for paperspace
+        print('{"chart": "G_GAN", "axis": "epoch"}')
+        print('{"chart": "G_L1", "axis": "epoch"}')
+        print('{"chart": "D_real", "axis": "epoch"}')
+        print('{"chart": "D_fake", "axis": "epoch"}')
 
     def reset(self):
         """Reset the self.saved status"""
@@ -224,6 +228,8 @@ class Visualizer():
         message = '(epoch: %d, iters: %d, time: %.3f, data: %.3f) ' % (epoch, iters, t_comp, t_data)
         for k, v in losses.items():
             message += '%s: %.3f ' % (k, v)
+            assert k in ["G_GAN", "G_L1", "D_real", "D_fake"], "Wrong loss tag"
+            print('{"chart": "%s", "x": %d, "y": %.03f}' % (k,epoch, v))
 
         print(message)  # print the message
         with open(self.log_name, "a") as log_file:
