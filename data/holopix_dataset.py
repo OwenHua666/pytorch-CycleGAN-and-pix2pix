@@ -28,6 +28,7 @@ class HolopixDataset(BaseDataset):
         with open(self.index_dir) as f:
             img_disp_pairs = f.readlines()
         img_disp_pairs = [x.strip() for x in img_disp_pairs]
+        random.shuffle(img_disp_pairs)
         self.A_paths = []
         self.B_paths = []
         for img_disp_pair in img_disp_pairs:
